@@ -20,6 +20,12 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y qemu-user-static binfmt-support openjdk-17-jdk crossbuild-essential-arm64
 
+    - name: Find aarch64 compilers
+      id: find_compilers
+      run: |
+        echo "AARCH64_GCC_PATH=$(find /usr/bin -name aarch64-linux-gnu-gcc | head -n 1)" >> $GITHUB_OUTPUT
+        echo "AARCH64_GPP_PATH=$(find /usr/bin -name aarch64-linux-gnu-g++ | head -n 1)" >> $GITHUB_OUTPUT
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -77,6 +83,8 @@ jobs:
           --action_env=TF_ENABLE_XLA=0 \
           --action_env=TF_DOWNLOAD_CLANG=0 \
           --action_env=TF_SET_ANDROID_WORKSPACE=0 \
+          --action_env=CC=${{ steps.find_compilers.outputs.AARCH64_GCC_PATH }} \
+          --action_env=CXX=${{ steps.find_compilers.outputs.AARCH64_GPP_PATH }} \
           //tensorflow/tools/pip_package:build_pip_package_py
 
     - name: Create Python wheel package
