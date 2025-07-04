@@ -73,7 +73,7 @@ jobs:
           --action_env=TF_ENABLE_XLA=0 \
           --action_env=TF_DOWNLOAD_CLANG=0 \
           --action_env=TF_SET_ANDROID_WORKSPACE=0 \
-          //tensorflow/tools/pip_package:build_pip_package
+          //tensorflow/tools/pip_package:build_pip_package_py
 
     - name: Create Python wheel package
       run: |
