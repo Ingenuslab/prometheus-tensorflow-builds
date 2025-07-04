@@ -42,8 +42,9 @@ jobs:
         # For example, for TensorFlow 2.16.1, you might use:
         # git checkout v2.16.1
 
-    - name: List aarch64 compilers
-      run: ls -l /usr/bin/aarch64-linux-gnu-*
+    - name: Find aarch64-linux-gnu-gcc
+      id: find_gcc
+      run: echo "AARCH64_GCC_PATH=$(find / -name aarch64-linux-gnu-gcc 2>/dev/null | head -n 1)" >> $GITHUB_OUTPUT
 
     - name: Configure TensorFlow build
       run: |
