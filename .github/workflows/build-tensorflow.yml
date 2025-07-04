@@ -1,0 +1,82 @@
+name: Build TensorFlow for Termux (ARM)
+
+on: 
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU for ARM emulation
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-user-static binfmt-support openjdk-17-jdk
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        architecture: 'x64' # The runner is x64, but we'll emulate ARM
+
+    - name: Install Bazel
+      run: |
+        BAZEL_VERSION="7.1.1" # Check TensorFlow's requirements for Bazel version
+        wget https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+        chmod +x bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+        ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh --user
+        echo "$HOME/bin" >> $GITHUB_PATH
+
+    - name: Clone TensorFlow repository
+      run: |
+        git clone https://github.com/tensorflow/tensorflow.git
+        cd tensorflow
+        # Checkout a specific release branch or tag if needed
+        # For example, for TensorFlow 2.16.1, you might use:
+        # git checkout v2.16.1
+
+    - name: Build TensorFlow pip package for ARM
+      run: |
+        cd tensorflow
+
+        # Install Python dependencies for TensorFlow build
+        pip install numpy wheel keras_applications keras_preprocessing
+
+        # Build the TensorFlow pip package for aarch64
+        # --config=opt: Enables optimizations.
+        # --cpu=aarch64: Targets the ARM64 architecture.
+        # --action_env=PYTHON_BIN_PATH: Ensures Bazel uses the correct Python interpreter.
+        # --action_env=PYTHON_LIB_PATH: Ensures Bazel finds Python libraries.
+        # --action_env=TF_NEED_CUDA=0, etc.: Disables GPU/other hardware support for a lean CPU-only build.
+        # //tensorflow/tools/pip_package:build_pip_package: The target to build the pip package.
+        bazel build --config=opt --cpu=aarch64 \
+          --action_env=PYTHON_BIN_PATH="$(which python)" \
+          --action_env=PYTHON_LIB_PATH="$("$(which python)" -c 'import site; print(site.getsitepackages()[0])')" \
+          --action_env=TF_NEED_CUDA=0 \
+          --action_env=TF_NEED_ROCM=0 \
+          --action_env=TF_NEED_TENSORRT=0 \
+          --action_env=TF_ENABLE_XLA=0 \
+          --action_env=TF_DOWNLOAD_CLANG=0 \
+          --action_env=TF_SET_ANDROID_WORKSPACE=0 \
+          //tensorflow/tools/pip_package:build_pip_package
+
+    - name: Create Python wheel package
+      run: |
+        cd tensorflow
+        # The build_pip_package script is executed by Bazel and places the wheel in bazel-bin
+        # We need to find the exact path.
+        # It's usually in bazel-bin/tensorflow/tools/pip_package/build_pip_package
+        mkdir -p /tmp/tensorflow_pkg
+        ./bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/tensorflow_pkg
+
+    - name: Upload TensorFlow wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: tensorflow-wheel
+        path: /tmp/tensorflow_pkg/*.whl
