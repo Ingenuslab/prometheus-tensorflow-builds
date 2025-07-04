@@ -42,6 +42,14 @@ jobs:
         # For example, for TensorFlow 2.16.1, you might use:
         # git checkout v2.16.1
 
+    - name: Configure TensorFlow build
+      run: |
+        cd tensorflow
+        # Run the configure script non-interactively
+        # This assumes default answers for most questions, which should be fine for a basic ARM build
+        # Adjust these if specific configurations are needed (e.g., CUDA, ROCm, etc.)
+        echo "" | python configure.py
+
     - name: Build TensorFlow pip package for ARM
       run: |
         cd tensorflow
@@ -56,7 +64,7 @@ jobs:
         # --action_env=PYTHON_LIB_PATH: Ensures Bazel finds Python libraries.
         # --action_env=TF_NEED_CUDA=0, etc.: Disables GPU/other hardware support for a lean CPU-only build.
         # //tensorflow/tools/pip_package:build_pip_package: The target to build the pip package.
-        bazel build --config=opt --cpu=aarch64 \
+        bazel build --cpu=aarch64 \
           --action_env=PYTHON_BIN_PATH="$(which python)" \
           --action_env=PYTHON_LIB_PATH="$("$(which python)" -c 'import site; print(site.getsitepackages()[0])')" \
           --action_env=TF_NEED_CUDA=0 \
