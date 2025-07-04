@@ -42,6 +42,9 @@ jobs:
         # For example, for TensorFlow 2.16.1, you might use:
         # git checkout v2.16.1
 
+    - name: List aarch64 compilers
+      run: ls -l /usr/bin/aarch64-linux-gnu-*
+
     - name: Configure TensorFlow build
       run: |
         cd tensorflow
